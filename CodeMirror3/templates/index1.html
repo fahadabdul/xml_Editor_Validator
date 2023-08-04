@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/xml/xml.min.js"></script>
+
+
+  <style>
+    /* Adjust the width of the two columns */
+    .container {
+      display: flex;
+      width: 100%;
+    }
+
+    .left-column {
+      flex: 1; /* Take equal space */
+      width: 50%; /* Set a fixed width for the left column */
+    }
+
+    .right-column {
+      flex: 1; /* Take equal space */
+      width: 50%; /* Set a fixed width for the right column */
+      overflow-y: auto; /* Enable vertical scrolling for the right column */
+      resize: none; /* Disable resizing of the right column */
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+  </style>
+
+
+</head>
+
+<body>
+  <h1>XML Editor</h1>
+
+  <form id="upload-form" action="{{ url_for('process_xml') }}" method="POST">
+    <input type="file" id="file-input" accept=".xml" name="xml-file" required>
+    <input type = "hidden" id = "file-name" name = "file-name">
+    <button type="submit">Upload</button>
+    
+  </form>
+
+  <hr>
+
+  <div class = "container">
+
+    <div class="left-column">
+      <h2>XML Editor</h2>
+
+
+      <input type="hidden" id="edited-xml-input" name="edited-xml">
+      <textarea id="xml-editor"  style="display: none;"></textarea>
+      <button type="submit" id="submit-button" name="submit-button" disabled>Submit</button>
+  </div>
+
+
+  <div class="right-column">
+    <h2>Original XML</h2>
+    <textarea id="original-xml" readonly></textarea>
+  </div>
+  </div>
+
+  
+  <script>
+    var xmlEditor;
+  
+    function initializeCodeMirror() {
+      var textarea = document.getElementById("xml-editor");
+      xmlEditor = CodeMirror.fromTextArea(textarea, {
+        mode: "xml",
+        lineNumbers: true,
+        autofocus: true
+      });
+  
+      xmlEditor.on("change", function() {
+        document.getElementById("submit-button").disabled = false;
+      });
+    }
+  
+    document.getElementById("upload-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      var fileInput = document.getElementById("file-input");
+      var file = fileInput.files[0];
+      var file_name = fileInput.files[0].name;
+      console.log(file_name)
+      localStorage.setItem("file_name", file_name);
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var content = e.target.result;
+          xmlEditor.setValue(content);
+          document.getElementById("original-xml").value = content; // Update the right column with original XML content
+          document.getElementById("submit-button").disabled = false;
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    document.getElementById("submit-button").addEventListener("click", function() {
+      var editedXml = xmlEditor.getValue();
+      console.log("Edited XML content before submitting:");
+      var stored_filename = localStorage.getItem("file_name");
+      console.log(stored_filename);
+      console.log(editedXml);
+      console.log("last line")
+      document.getElementById("edited-xml-input").value = editedXml;
+      fetch('/edit_xml',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name: stored_filename, 'json':editedXml.toString()})}).then(response=>response.json()).then(data=>{alert(data['valid'])})
+    });
+  
+    initializeCodeMirror();
+  </script>
+  
+
+</body>
+</html>
